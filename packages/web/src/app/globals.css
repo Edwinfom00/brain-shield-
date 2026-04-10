@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+:root {
+  --violet-50:  #f5f3ff;
+  --violet-100: #ede9fe;
+  --violet-200: #ddd6fe;
+  --violet-300: #c4b5fd;
+  --violet-400: #a78bfa;
+  --violet-500: #8b5cf6;
+  --violet-600: #7c3aed;
+  --violet-700: #6d28d9;
+  --violet-800: #5b21b6;
+  --violet-900: #4c1d95;
+  --violet-950: #2e1065;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: #09090b;
+  color: #fafafa;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #18181b; }
+::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+/* Glow utilities */
+.glow-violet { box-shadow: 0 0 40px rgba(124, 58, 237, 0.15); }
+.glow-violet-sm { box-shadow: 0 0 20px rgba(124, 58, 237, 0.1); }
+
+/* Code blocks */
+code, pre {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}

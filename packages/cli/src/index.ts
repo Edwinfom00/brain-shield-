@@ -5,11 +5,10 @@ import { chatCommand } from './commands/chat.js';
 import { fixCommand } from './commands/fix.js';
 import { reportCommand } from './commands/report.js';
 import { configCommand } from './commands/config.js';
+import { initCommand } from './commands/init.js';
 import { printBanner } from './ui/banner.js';
 import { version } from './version.js';
 
-// Show banner unless the user is piping output, asking for version,
-// or requesting raw JSON (machine-readable output)
 const isMachineOutput =
   process.argv.includes('--json') ||
   process.argv.includes('--version') ||
@@ -29,8 +28,9 @@ program.addCommand(chatCommand);
 program.addCommand(fixCommand);
 program.addCommand(reportCommand);
 program.addCommand(configCommand);
+program.addCommand(initCommand);
 
-// Running `brain` alone (no subcommand) triggers the scan
+// `brain` alone → scan (with auto session init)
 program.action(async () => {
   await brainCommand.parseAsync([], { from: 'user' });
 });

@@ -1,0 +1,72 @@
+{
+  "id": "FeVVcSf1ZICSuodmNvYdM",
+  "timestamp": "2026-04-10T13:45:46.150Z",
+  "cwd": "C:\\Users\\EDWIN.FOM\\Desktop\\Projects\\Edwin\\brain-shield",
+  "projectType": "javascript",
+  "score": 85,
+  "vulnerabilities": [
+    {
+      "id": "INJ-T3QEVF",
+      "title": "XSS via document.write",
+      "description": "XSS via document.write — potential injection vulnerability detected.",
+      "severity": "HIGH",
+      "category": "Injection",
+      "file": "packages\\cli\\src\\agents\\scanners\\injection.ts",
+      "line": 39,
+      "snippet": "38 |     owasp: 'A03:2021',\r\n39 |     fix: 'Replace document.write() with DOM manipulation (createElement, appendChild) or React state.',\r\n40 |   },\r",
+      "fix": "Replace document.write() with DOM manipulation (createElement, appendChild) or React state.",
+      "cwe": "CWE-79",
+      "owasp": "A03:2021",
+      "autoFixable": false
+    }
+  ],
+  "agents": [
+    {
+      "agentId": "secrets-scanner",
+      "agentName": "Secrets & Keys Scanner",
+      "vulnerabilities": [],
+      "duration": 9
+    },
+    {
+      "agentId": "auth-scanner",
+      "agentName": "Auth & Session Scanner",
+      "vulnerabilities": [],
+      "duration": 7269
+    },
+    {
+      "agentId": "injection-scanner",
+      "agentName": "XSS & Injection Scanner",
+      "vulnerabilities": [
+        {
+          "id": "INJ-T3QEVF",
+          "title": "XSS via document.write",
+          "description": "XSS via document.write — potential injection vulnerability detected.",
+          "severity": "HIGH",
+          "category": "Injection",
+          "file": "packages\\cli\\src\\agents\\scanners\\injection.ts",
+          "line": 39,
+          "snippet": "38 |     owasp: 'A03:2021',\r\n39 |     fix: 'Replace document.write() with DOM manipulation (createElement, appendChild) or React state.',\r\n40 |   },\r",
+          "fix": "Replace document.write() with DOM manipulation (createElement, appendChild) or React state.",
+          "cwe": "CWE-79",
+          "owasp": "A03:2021",
+          "autoFixable": false
+        }
+      ],
+      "duration": 6575
+    },
+    {
+      "agentId": "api-scanner",
+      "agentName": "API Security Scanner",
+      "vulnerabilities": [],
+      "duration": 2
+    },
+    {
+      "agentId": "deps-scanner",
+      "agentName": "Dependency CVE Scanner",
+      "vulnerabilities": [],
+      "duration": 654
+    }
+  ],
+  "duration": 7290,
+  "filesScanned": 111
+}

@@ -10,3 +10,4 @@ coverage/
 .env.production
 .DS_Store
 Thumbs.db
+.vscode

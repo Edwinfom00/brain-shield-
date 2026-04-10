@@ -33,7 +33,7 @@ const INJECTION_PATTERNS: Array<{
   {
     name: 'XSS via document.write',
     pattern: /document\.write\s*\(/g,
-    severity: 'HIGH',
+severity: 'HIGH',
     cwe: 'CWE-79',
     owasp: 'A03:2021',
     fix: 'Replace document.write() with DOM manipulation (createElement, appendChild) or React state.',

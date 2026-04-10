@@ -2,7 +2,8 @@ import { readFileSync } from 'fs';
 import { relative } from 'path';
 import { nanoid } from 'nanoid';
 import type { Agent, AgentResult, ScanContext, Vulnerability } from '../types.js';
-import { askClaude } from '../../core/claude.js';
+import { askClaudeStructured } from '../../core/claude.js';
+import { z } from 'zod';
 
 /**
  * Static regex patterns for common secrets.
@@ -104,6 +105,17 @@ const SECRET_PATTERNS: Array<{
 /** Skip files that legitimately contain these patterns */
 const SKIP_PATTERNS = ['.test.', '.spec.', '.mock.', '__mocks__', 'fixtures'];
 
+const VulnEnrichmentSchema = z.object({
+  findings: z.array(
+    z.object({
+      title: z.string(),
+      confirmed: z.boolean(),
+      severity: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']),
+      fix: z.string(),
+    })
+  ),
+});
+
 function shouldSkipFile(filePath: string): boolean {
   return SKIP_PATTERNS.some((p) => filePath.includes(p));
 }
@@ -193,39 +205,39 @@ export class SecretsScanner implements Agent {
     vulns: Vulnerability[],
     context: ScanContext
   ): Promise<Vulnerability[]> {
-    const summary = vulns
-      .map((v) => `[${v.severity}] ${v.title} in ${v.file}:${v.line}\nSnippet:\n${v.snippet}`)
-      .join('\n\n');
+    try {
+      const summary = vulns
+        .map((v) => `title: "${v.title}"\nfile: ${v.file}:${v.line}\nsnippet:\n${v.snippet}`)
+        .join('\n\n---\n\n');
 
-    const prompt = `You are a security expert reviewing findings from a static analysis scan.
-Review these potential secret/credential leaks and for each one:
-1. Confirm if it's a real finding or a false positive
-2. Provide a specific, actionable fix suggestion if real
+      const result = await askClaudeStructured(
+        `Review these secret/credential leak findings in a ${context.projectType} project (${context.framework ?? 'unknown'}).
+For each finding, confirm if it's a real secret or a false positive (e.g. placeholder, example value, test data).
+Provide a specific actionable fix for each real finding.
 
 Findings:
 ${summary}
 
-Project type: ${context.projectType}
-Framework: ${context.framework ?? 'unknown'}
-
-For each finding, respond with whether it's valid and improve the fix suggestion if needed.
-Keep your response concise and focused on actionable fixes.`;
-
-    const systemPrompt =
-      'You are a security expert specializing in secret management and credential security for JavaScript/TypeScript projects. Be concise and practical.';
-
-    const response = await askClaude(prompt, systemPrompt);
-
-    // Append Claude's analysis to the fix field of the first vuln as a summary
-    // (Full structured enrichment comes in Phase 2)
-    if (vulns.length > 0) {
-      return vulns.map((v, i) =>
-        i === 0
-          ? { ...v, fix: `${v.fix}\n\nAI Analysis:\n${response.slice(0, 400)}` }
-          : v
+Return JSON with a "findings" array. Each item must have:
+- title (string matching original)
+- confirmed (boolean — false if it looks like a placeholder/example)
+- severity ("CRITICAL"|"HIGH"|"MEDIUM"|"LOW"|"INFO")
+- fix (string — specific fix, e.g. which env var name to use)`,
+        'You are a security expert specializing in secret management. Be precise — flag false positives like "your-api-key-here" or "example123".',
+        VulnEnrichmentSchema
       );
-    }
 
-    return vulns;
+      return vulns
+        .map((v) => {
+          const enrichment = result.findings.find(
+            (f) => f.title.toLowerCase().includes(v.title.toLowerCase().slice(0, 20))
+          );
+          if (!enrichment || !enrichment.confirmed) return { ...v, severity: 'INFO' as const };
+          return { ...v, severity: enrichment.severity, fix: enrichment.fix || v.fix };
+        })
+        .filter((v) => v.severity !== 'INFO');
+    } catch {
+      return vulns;
+    }
   }
 }

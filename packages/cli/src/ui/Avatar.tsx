@@ -1,121 +1,132 @@
+import React from 'react';
 import { Box, Text } from 'ink';
 import { theme } from './theme.js';
 
 export interface AvatarProps {
   thinking?: boolean;
   speaking?: boolean;
+  error?: boolean;
   size?: 'sm' | 'md';
 }
 
-// ── Pixel-art shield mascot — 3 states ──────────────────────────────────────
+// ─── Shield mascot — clean rounded style ─────────────────────────────────────
 //
-//  IDLE      THINKING     SPEAKING
-//  ╔══════╗  ╔══════╗    ╔══════╗
-//  ║ ◈  ◈ ║  ║ ◉  ◉ ║    ║ ◈  ◈ ║
-//  ║  ──  ║  ║  ??  ║    ║  ▲▲  ║
-//  ║▄████▄║  ║ ···· ║    ║ ~~~~ ║
-//  ╚══╗╔══╝  ╚══╗╔══╝    ╚══╗╔══╝
-//     ║║         ║║           ║║
-//     ▀▀         ▀▀           ▀▀
-//    [BS]       [BS]         [BS]
+//  IDLE          THINKING       SPEAKING       ERROR
+//  ╭──────╮      ╭──────╮       ╭──────╮       ╭──────╮
+//  │ ◈  ◈ │      │ ◉  ◉ │       │ ◈  ◈ │       │ ✕  ✕ │
+//  │  ──  │      │  ??  │       │  ▲▲  │       │  !!  │
+//  │▄████▄│      │ ···· │       │ ~~~~ │       │ ████ │
+//  ╰──╥──╯       ╰──╥──╯        ╰──╥──╯        ╰──╥──╯
+//     ╨              ╨              ╨              ╨
+//    [BS]           [BS]           [BS]           [BS]
 
-const FRAMES = {
-  idle: [
-    '  ╔════════╗  ',
-    '  ║ ◈    ◈ ║  ',
-    '  ║   ──   ║  ',
-    '  ║ ██████ ║  ',
-    '  ╚══╗  ╔══╝  ',
-    '     ╚══╝     ',
-    '  ▄▄ BSLD ▄▄  ',
-  ],
-  thinking: [
-    '  ╔════════╗  ',
-    '  ║ ◉    ◉ ║  ',
-    '  ║   ??   ║  ',
-    '  ║  ····  ║  ',
-    '  ╚══╗  ╔══╝  ',
-    '     ╚══╝     ',
-    '  ▄▄ BSLD ▄▄  ',
-  ],
-  speaking: [
-    '  ╔════════╗  ',
-    '  ║ ◈    ◈ ║  ',
-    '  ║   ▲▲   ║  ',
-    '  ║  ~~~~  ║  ',
-    '  ╚══╗  ╔══╝  ',
-    '     ╚══╝     ',
-    '  ▄▄ BSLD ▄▄  ',
-  ],
-};
+type State = 'idle' | 'thinking' | 'speaking' | 'error';
 
-function getColors(thinking: boolean, speaking: boolean) {
-  if (thinking) return { border: theme.warning, eyes: theme.warning, accent: theme.muted,   label: theme.warning };
-  if (speaking) return { border: theme.primary, eyes: theme.success,  accent: theme.primary, label: theme.success  };
-  return         { border: theme.primary, eyes: theme.primary, accent: theme.muted,   label: theme.primary };
+interface StateConfig {
+  border:  string;
+  eyes:    string;
+  mouth:   string;
+  body:    string;
+  label:   string;
+  eyeChar: string;
+  mouthChar: string;
+  bodyChar:  string;
 }
 
-export function Avatar({ thinking = false, speaking = false, size = 'md' }: AvatarProps) {
-  const state  = thinking ? 'thinking' : speaking ? 'speaking' : 'idle';
-  const frames = FRAMES[state];
-  const colors = getColors(thinking, speaking);
+function getState(thinking: boolean, speaking: boolean, error: boolean): State {
+  if (error)    return 'error';
+  if (thinking) return 'thinking';
+  if (speaking) return 'speaking';
+  return 'idle';
+}
+
+function getConfig(state: State): StateConfig {
+  switch (state) {
+    case 'thinking': return {
+      border:    theme.warning,
+      eyes:      theme.warning,
+      mouth:     theme.muted,
+      body:      theme.warning,
+      label:     theme.warning,
+      eyeChar:   '◉  ◉',
+      mouthChar: ' ?? ',
+      bodyChar:  '····',
+    };
+    case 'speaking': return {
+      border:    theme.primary,
+      eyes:      theme.success2,
+      mouth:     theme.primary2,
+      body:      theme.primary,
+      label:     theme.success,
+      eyeChar:   '◈  ◈',
+      mouthChar: ' ▲▲ ',
+      bodyChar:  '~~~~',
+    };
+    case 'error': return {
+      border:    theme.danger,
+      eyes:      theme.danger,
+      mouth:     theme.danger,
+      body:      theme.danger,
+      label:     theme.danger,
+      eyeChar:   '✕  ✕',
+      mouthChar: ' !! ',
+      bodyChar:  '████',
+    };
+    default: return {
+      border:    theme.primary,
+      eyes:      theme.primary2,
+      mouth:     theme.muted,
+      body:      theme.muted,
+      label:     theme.primary,
+      eyeChar:   '◈  ◈',
+      mouthChar: ' ── ',
+      bodyChar:  '████',
+    };
+  }
+}
+
+export function Avatar({ thinking = false, speaking = false, error = false, size = 'md' }: AvatarProps) {
+  const state  = getState(thinking, speaking, error);
+  const cfg    = getConfig(state);
 
   if (size === 'sm') {
-    // Compact 3-line version for tight layouts
-    const eye = thinking ? '◉' : '◈';
-    const mouth = thinking ? '···' : speaking ? '~~~' : '───';
     return (
-      <Box flexDirection="column" width={9}>
-        <Text color={colors.border}>{'╔═════╗'}</Text>
-        <Text color={colors.border}>{'║'}<Text color={colors.eyes}>{` ${eye} ${eye} `}</Text><Text color={colors.border}>{'║'}</Text></Text>
-        <Text color={colors.border}>{'║'}<Text color={colors.accent}>{` ${mouth} `}</Text><Text color={colors.border}>{'║'}</Text></Text>
-        <Text color={colors.border}>{'╚══╗╔══╝'}</Text>
-        <Text color={colors.label} bold dimColor>{'  BS  '}</Text>
+      <Box flexDirection="column" width={10}>
+        <Text color={cfg.border}>{'╭──────╮'}</Text>
+        <Text color={cfg.border}>{'│'}<Text color={cfg.eyes}>{` ${cfg.eyeChar} `}</Text><Text color={cfg.border}>{'│'}</Text></Text>
+        <Text color={cfg.border}>{'│'}<Text color={cfg.mouth}>{cfg.mouthChar}</Text><Text color={cfg.border}>{'│'}</Text></Text>
+        <Text color={cfg.border}>{'╰──╥───╯'}</Text>
+        <Text color={cfg.label} dimColor>{'   ╨   '}</Text>
       </Box>
     );
   }
 
   return (
-    <Box flexDirection="column" width={15}>
-      {frames.map((line, i) => {
-        // Color different parts
-        if (i === 0 || i === 4 || i === 5) {
-          return <Text key={i} color={colors.border} bold>{line}</Text>;
-        }
-        if (i === 1) {
-          // Eyes line
-          return (
-            <Text key={i} color={colors.border} bold>
-              {'  ║ '}<Text color={colors.eyes} bold>{thinking ? '◉    ◉' : '◈    ◈'}</Text>{' ║  '}
-            </Text>
-          );
-        }
-        if (i === 2) {
-          return (
-            <Text key={i} color={colors.border} bold>
-              {'  ║ '}<Text color={colors.accent}>{thinking ? '  ??  ' : speaking ? '  ▲▲  ' : '  ──  '}</Text>{' ║  '}
-            </Text>
-          );
-        }
-        if (i === 3) {
-          return (
-            <Text key={i} color={colors.border} bold>
-              {'  ║ '}<Text color={thinking ? theme.warning : speaking ? theme.primary : theme.muted}>
-                {thinking ? ' ···· ' : speaking ? ' ~~~~ ' : ' ████ '}
-              </Text>{' ║  '}
-            </Text>
-          );
-        }
-        if (i === 6) {
-          // Label
-          return (
-            <Text key={i} color={colors.label} bold>
-              {line}
-            </Text>
-          );
-        }
-        return <Text key={i} color={colors.border} bold>{line}</Text>;
-      })}
+    <Box flexDirection="column" width={14}>
+      {/* Top border */}
+      <Text color={cfg.border} bold>{'  ╭────────╮'}</Text>
+
+      {/* Eyes */}
+      <Text color={cfg.border} bold>
+        {'  │ '}<Text color={cfg.eyes} bold>{cfg.eyeChar}</Text>{' │'}
+      </Text>
+
+      {/* Mouth */}
+      <Text color={cfg.border} bold>
+        {'  │'}<Text color={cfg.mouth}>{` ${cfg.mouthChar} `}</Text>{'│'}
+      </Text>
+
+      {/* Body */}
+      <Text color={cfg.border} bold>
+        {'  │'}<Text color={cfg.body} bold>{` ${cfg.bodyChar} `}</Text>{'│'}
+      </Text>
+
+      {/* Bottom */}
+      <Text color={cfg.border} bold>{'  ╰──╥───╯'}</Text>
+      <Text color={cfg.border} dimColor>{'     ╨    '}</Text>
+
+      {/* Label */}
+      <Text color={cfg.label} bold dimColor>{'   ▄ BS ▄  '}</Text>
     </Box>
   );
 }

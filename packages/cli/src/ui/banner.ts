@@ -1,103 +1,89 @@
-import figlet from 'figlet';
 import chalk from 'chalk';
 import { version } from '../version.js';
 
-// ── Pixel-art hand-crafted "BRAINSIELD" ─────────────────────────────────────
-// Used when terminal is narrow — game-style, one line per row
+// ─── Compact wordmark — works at any terminal width ──────────────────────────
+// Uses block chars for a sharp, modern look (no figlet dependency needed)
 
-const PIXEL_ART = [
-  '██████╗ ██████╗  █████╗ ██╗███╗  ██╗███████╗██╗  ██╗██╗███████╗██╗     ██████╗ ',
-  '██╔══██╗██╔══██╗██╔══██╗██║████╗ ██║██╔════╝██║  ██║██║██╔════╝██║     ██╔══██╗',
-  '██████╔╝██████╔╝███████║██║██╔██╗██║███████╗███████║██║█████╗  ██║     ██║  ██║',
-  '██╔══██╗██╔══██╗██╔══██║██║██║╚████║╚════██║██╔══██║██║██╔══╝  ██║     ██║  ██║',
-  '██████╔╝██║  ██║██║  ██║██║██║ ╚███║███████║██║  ██║██║███████╗███████╗██████╔╝',
-  '╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚══╝╚══════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚═════╝ ',
+const WORDMARK_WIDE = [
+  ' ██████╗ ██████╗  █████╗ ██╗███╗  ██╗███████╗██╗  ██╗██╗███████╗██╗     ██████╗',
+  ' ██╔══██╗██╔══██╗██╔══██╗██║████╗ ██║██╔════╝██║  ██║██║██╔════╝██║     ██╔══██╗',
+  ' ██████╔╝██████╔╝███████║██║██╔██╗██║███████╗███████║██║█████╗  ██║     ██║  ██║',
+  ' ██╔══██╗██╔══██╗██╔══██║██║██║╚████║╚════██║██╔══██║██║██╔══╝  ██║     ██║  ██║',
+  ' ██████╔╝██║  ██║██║  ██║██║██║ ╚███║███████║██║  ██║██║███████╗███████╗██████╔╝',
+  ' ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚══╝╚══════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚═════╝',
 ];
 
-// ── Gradient palettes ────────────────────────────────────────────────────────
+// Compact single-line for narrow terminals
+const WORDMARK_NARROW = '  ▐█▌  BrainShield';
 
-// Line-by-line gradient (top = light, bottom = dark) — violet like our brand
-const VIOLET_GRADIENT = [
-  '#E9D5FF', // violet-200
-  '#C4B5FD', // violet-300
-  '#A78BFA', // violet-400
-  '#8B5CF6', // violet-500
-  '#7C3AED', // violet-600
-  '#6D28D9', // violet-700
-];
+// Gradient: violet-200 → violet-700 top to bottom
+const GRADIENT = ['#DDD6FE', '#C4B5FD', '#A78BFA', '#8B5CF6', '#7C3AED', '#6D28D9'];
 
-
-function pad(text: string, width: number): string {
-  const visible = text.replace(/\x1B\[[0-9;]*m/g, ''); // strip ANSI for length
-  const padLen = Math.max(0, Math.floor((width - visible.length) / 2));
-  return ' '.repeat(padLen) + text;
+function stripAnsi(s: string): number {
+  return s.replace(/\x1B\[[0-9;]*m/g, '').length;
 }
 
-// ── Main banner function ─────────────────────────────────────────────────────
+function center(text: string, width: number): string {
+  const len = stripAnsi(text);
+  const pad = Math.max(0, Math.floor((width - len) / 2));
+  return ' '.repeat(pad) + text;
+}
 
 export function printBanner(): void {
   const cols = Math.min(process.stdout.columns ?? 100, 120);
+  const hr = chalk.hex('#3F3F46')('─'.repeat(cols));
 
-  // ── Logo ──────────────────────────────────────────────────────────────────
-  let logoLines: string[];
+  console.log();
 
-  if (cols >= 84) {
-    // Wide terminal → show full BRAINSIELD in ANSI Shadow (pixel block style)
-    logoLines = PIXEL_ART;
+  if (cols >= 86) {
+    // ── Wide: full pixel wordmark with gradient ──────────────────────────
+    for (let i = 0; i < WORDMARK_WIDE.length; i++) {
+      const color = GRADIENT[Math.min(i, GRADIENT.length - 1)] ?? '#7C3AED';
+      console.log(chalk.hex(color).bold(WORDMARK_WIDE[i]));
+    }
   } else {
-    // Narrow terminal → use figlet "Big" font for "BRAIN" / "SHIELD" stacked
-    const brain  = figlet.textSync('BRAIN',  { font: 'Big', horizontalLayout: 'default' });
-    const shield = figlet.textSync('SHIELD', { font: 'Big', horizontalLayout: 'default' });
-    logoLines = [...brain.split('\n'), ...shield.split('\n')];
+    // ── Narrow: compact brand line ───────────────────────────────────────
+    console.log(chalk.hex('#A78BFA').bold(WORDMARK_NARROW));
   }
 
-  // Center each line
-  const logoWidth = Math.max(...logoLines.map((l) => l.length));
-  const centeredLogo = logoLines
-    .map((line) => {
-      const padLen = Math.max(0, Math.floor((cols - logoWidth) / 2));
-      return ' '.repeat(padLen) + line;
-    });
+  console.log();
 
-  // Apply vertical gradient
-  const coloredLogo = centeredLogo
-    .map((line, i) => {
-      const color = VIOLET_GRADIENT[Math.min(i, VIOLET_GRADIENT.length - 1)];
-      return chalk.hex(color ?? '#7C3AED').bold(line);
-    })
-    .join('\n');
-
-  // ── Divider ───────────────────────────────────────────────────────────────
-  const divider = chalk.hex('#4C1D95').dim('─'.repeat(cols));
-
-  // ── Status bar (Gemini-style bottom bar) ─────────────────────────────────
-  const authorLabel  = chalk.hex('#C4B5FD').bold('by Edwin Fom');
-  const versionLabel = chalk.hex('#6D28D9')(`v${version}`);
-  const jsLabel      = chalk.hex('#A78BFA')('JS · TS · Next.js · Vite');
-
-  const statusLeft  = `  ${authorLabel}   ${jsLabel}   ${versionLabel}`;
-  const statusRight = chalk.hex('#4C1D95')('brain scan  brain chat  brain fix  brain --help  ');
-
-  const statusLeftClean  = statusLeft.replace(/\x1B\[[0-9;]*m/g, '');
-  const statusRightClean = statusRight.replace(/\x1B\[[0-9;]*m/g, '');
-  const gap = Math.max(1, cols - statusLeftClean.length - statusRightClean.length);
-
-  const statusBar = statusLeft + ' '.repeat(gap) + statusRight;
-
-  // ── Tagline ───────────────────────────────────────────────────────────────
-  const tagline = pad(
-    chalk.hex('#DDD6FE').italic('Detect. Analyze. Protect. — Powered by Edwin Fom'),
+  // ── Tagline ──────────────────────────────────────────────────────────────
+  const tagline = center(
+    chalk.hex('#6B7280')('AI-powered security analysis for JS & TS codebases'),
     cols
   );
-
-  // ── Output ────────────────────────────────────────────────────────────────
-  console.log();
-  console.log(coloredLogo);
-  console.log();
   console.log(tagline);
   console.log();
-  console.log(divider);
-  console.log(statusBar);
-  console.log(divider);
+
+  // ── Divider ──────────────────────────────────────────────────────────────
+  console.log(hr);
+
+  // ── Info bar ─────────────────────────────────────────────────────────────
+  const left = [
+    chalk.hex('#7C3AED').bold('▐█▌'),
+    chalk.white.bold('BrainShield'),
+    chalk.hex('#3F3F46')('·'),
+    chalk.hex('#6B7280')(`v${version}`),
+    chalk.hex('#3F3F46')('·'),
+    chalk.hex('#6B7280')('JS · TS · Next.js · Vite'),
+  ].join(' ');
+
+  const cmds = [
+    chalk.hex('#7C3AED')('scan'),
+    chalk.hex('#6B7280')('chat'),
+    chalk.hex('#6B7280')('fix'),
+    chalk.hex('#6B7280')('report'),
+    chalk.hex('#6B7280')('config'),
+  ].join(chalk.hex('#3F3F46')('  '));
+
+  const right = cmds + '  ';
+
+  const leftLen  = stripAnsi(left);
+  const rightLen = stripAnsi(right);
+  const gap = Math.max(2, cols - leftLen - rightLen);
+
+  console.log(left + ' '.repeat(gap) + right);
+  console.log(hr);
   console.log();
 }

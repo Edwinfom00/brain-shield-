@@ -1,16 +1,22 @@
 {
-  "name": "@brainsield/cli",
+  "name": "brainsield",
   "version": "0.1.0",
-  "description": "BrainShield CLI — AI-powered security analysis for your codebase",
+  "description": "AI-powered security analysis CLI for JavaScript/TypeScript codebases",
   "type": "module",
   "bin": {
-    "brain": "./dist/index.js"
+    "brain": "./dist/index.js",
+    "brainsield": "./dist/index.js"
   },
   "main": "./dist/index.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "dev": "tsc --project tsconfig.json --watch",
     "start": "node dist/index.js",
+    "prepublishOnly": "pnpm build",
     "lint": "eslint src --ext .ts,.tsx",
     "clean": "rm -rf dist"
   },
@@ -45,8 +51,19 @@
     "security",
     "cli",
     "ai",
-    "codebase",
-    "vulnerability"
+    "claude",
+    "vulnerability",
+    "scanner",
+    "typescript",
+    "nextjs",
+    "vite",
+    "codebase"
   ],
-  "license": "MIT"
+  "author": "Edwin Fom <edwinfom@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Edwinfom00/brain-shield"
+  },
+  "homepage": "https://brainsield.dev"
 }

@@ -86,7 +86,7 @@ export function printBanner(): void {
 
   // ── Tagline ───────────────────────────────────────────────────────────────
   const tagline = pad(
-    chalk.hex('#DDD6FE').italic('Detect. Analyze. Protect. — Powered by Claude AI'),
+    chalk.hex('#DDD6FE').italic('Detect. Analyze. Protect. — Powered by Edwin Fom'),
     cols
   );
 

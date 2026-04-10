@@ -12,6 +12,7 @@ import { Orchestrator } from '../agents/orchestrator.js';
 import type { ScanReport, AgentResult } from '../agents/types.js';
 import { saveReport } from '../core/reports.js';
 import { getOrInitSession, saveSession, loadSession } from '../core/session.js';
+import { pushReport, type PushResult } from '../core/push.js';
 
 // ─── Phases ───────────────────────────────────────────────────────────────────
 
@@ -205,8 +206,9 @@ export const brainCommand = new Command('scan')
   .aliases(['s'])
   .description('Scan the current codebase for security vulnerabilities')
   .option('-d, --dir <path>', 'Directory to scan', process.cwd())
-  .option('--json',  'Output raw JSON report')
-  .option('--save',  'Save report to .brainsield/reports/')
+  .option('--json',  'Output raw JSON report (suppresses UI)')
+  .option('--save',  'Print the saved report path after scan')
+  .option('--push',  'Push report to BrainShield dashboard')
   .action(async (opts) => {
     const cwd: string = opts.dir ?? process.cwd();
 
@@ -232,6 +234,7 @@ export const brainCommand = new Command('scan')
       }
 
       // ── Always save report + update session ──────────────────────────────
+      // Report is always persisted — no --save flag needed for fix/report to work
       await saveReport(report, cwd);
 
       // Update session with latest scan ID
@@ -242,6 +245,17 @@ export const brainCommand = new Command('scan')
 
       if (opts.save) {
         console.log(`\nReport saved → .brainsield/reports/scan-${report.id}.json`);
+      }
+
+      // ── Push to dashboard ────────────────────────────────────────────────
+      if (opts.push) {
+        process.stdout.write('\nPushing to dashboard...');
+        const push: PushResult = await pushReport(report);
+        if (push.ok) {
+          console.log(`\r✓ Dashboard updated → scan ${push.scanId}\n`);
+        } else {
+          console.log(`\r⚠ Push failed: ${push.error}\n`);
+        }
       }
     } catch (err) {
       unmount();

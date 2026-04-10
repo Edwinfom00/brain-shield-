@@ -68,8 +68,8 @@ export class Orchestrator {
 
     const allVulns: Vulnerability[] = agentResults.flatMap((r) => r.vulnerabilities);
     const deduped = deduplicateVulns(allVulns);
-    const sorted = sortBySeverity(deduped);
-    const score = computeScore(sorted);
+    const sorted  = sortBySeverity(deduped);
+    const score   = computeScore(sorted, context.files.length); // density-aware
 
     return {
       id: nanoid(),

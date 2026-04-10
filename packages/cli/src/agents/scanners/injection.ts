@@ -32,11 +32,11 @@ const INJECTION_PATTERNS: Array<{
   },
   {
     name: 'XSS via document.write',
-    pattern: /document\.write\s*\(/g,
-severity: 'HIGH',
+    pattern: /document\.write(?:ln)?\s*\(/g,
+    severity: 'HIGH',
     cwe: 'CWE-79',
     owasp: 'A03:2021',
-    fix: 'Replace document.write() with DOM manipulation (createElement, appendChild) or React state.',
+    fix: 'Replace document.write() with safe DOM manipulation methods (createElement, appendChild, textContent) or React state.',
   },
   {
     name: 'Unescaped user input in template literal (potential XSS)',
@@ -50,7 +50,7 @@ severity: 'HIGH',
   // ── SQL Injection ────────────────────────────────────────────────────────
   {
     name: 'SQL Injection — string concatenation in query',
-    pattern: /(?:query|execute|raw)\s*\(\s*[`'"](?:[^`'"]*)\$\{?(?:req\.|params\.|body\.|query\.|\w+Id|\w+Name)[^}`'"]*[}`'"]/g,
+    pattern: /(?:query|execute|raw)\s*\(\s*[`'"](?:[^`'"]*)\.?\$\{?(?:req\.|params\.|body\.|query\.|\w+Id|\w+Name)[^}`'"]*[}`'"]/g,
     severity: 'CRITICAL',
     cwe: 'CWE-89',
     owasp: 'A03:2021',

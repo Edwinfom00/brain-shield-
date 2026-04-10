@@ -1,19 +1,19 @@
 {
-  "id": "zBmXG7s8_czn-zhsHVP_L",
-  "timestamp": "2026-04-10T14:43:37.832Z",
+  "id": "HVCqfCWnSy868TjmrM-ro",
+  "timestamp": "2026-04-10T14:40:42.522Z",
   "cwd": "C:\\Users\\EDWIN.FOM\\Desktop\\Projects\\Edwin\\brain-shield",
   "projectType": "javascript",
   "score": 90,
   "vulnerabilities": [
     {
-      "id": "INJ-FELKRP",
+      "id": "INJ-WJO5_J",
       "title": "XSS via document.write",
       "description": "XSS via document.write — potential injection vulnerability detected.",
       "severity": "HIGH",
       "category": "Injection",
       "file": "packages\\cli\\src\\agents\\scanners\\injection.ts",
       "line": 39,
-      "snippet": "38 |     owasp: 'A03:2021',\n39 |     fix: 'Replace document.write() with safe DOM manipulation methods (createElement, appendChild, textContent) or React state.',\n40 |   },",
+      "snippet": "38 |     owasp: 'A03:2021',\n39 |     fix: 'Replace document.write() with DOM manipulation (createElement, appendChild) or React state.',\n40 |   },",
       "fix": "Replace document.write() with DOM manipulation (createElement, appendChild) or React state.",
       "cwe": "CWE-79",
       "owasp": "A03:2021",
@@ -25,34 +25,34 @@
       "agentId": "secrets-scanner",
       "agentName": "Secrets & Keys Scanner",
       "vulnerabilities": [],
-      "duration": 11
+      "duration": 13
     },
     {
       "agentId": "auth-scanner",
       "agentName": "Auth & Session Scanner",
       "vulnerabilities": [],
-      "duration": 6568
+      "duration": 7601
     },
     {
       "agentId": "injection-scanner",
       "agentName": "XSS & Injection Scanner",
       "vulnerabilities": [
         {
-          "id": "INJ-FELKRP",
+          "id": "INJ-WJO5_J",
           "title": "XSS via document.write",
           "description": "XSS via document.write — potential injection vulnerability detected.",
           "severity": "HIGH",
           "category": "Injection",
           "file": "packages\\cli\\src\\agents\\scanners\\injection.ts",
           "line": 39,
-          "snippet": "38 |     owasp: 'A03:2021',\n39 |     fix: 'Replace document.write() with safe DOM manipulation methods (createElement, appendChild, textContent) or React state.',\n40 |   },",
+          "snippet": "38 |     owasp: 'A03:2021',\n39 |     fix: 'Replace document.write() with DOM manipulation (createElement, appendChild) or React state.',\n40 |   },",
           "fix": "Replace document.write() with DOM manipulation (createElement, appendChild) or React state.",
           "cwe": "CWE-79",
           "owasp": "A03:2021",
           "autoFixable": false
         }
       ],
-      "duration": 5958
+      "duration": 7987
     },
     {
       "agentId": "api-scanner",
@@ -64,9 +64,9 @@
       "agentId": "deps-scanner",
       "agentName": "Dependency CVE Scanner",
       "vulnerabilities": [],
-      "duration": 652
+      "duration": 668
     }
   ],
-  "duration": 6588,
+  "duration": 8024,
   "filesScanned": 112
 }

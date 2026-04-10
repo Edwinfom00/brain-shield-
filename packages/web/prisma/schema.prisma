@@ -1,0 +1,119 @@
+// BrainShield — Prisma Schema
+// better-auth tables + app tables
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ─── better-auth required tables ─────────────────────────────────────────────
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions      Session[]
+  accounts      Account[]
+  scans         Scan[]
+}
+
+model Session {
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([token])
+}
+
+model Account {
+  id                    String    @id
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+// ─── App tables ───────────────────────────────────────────────────────────────
+
+model Scan {
+  id            String    @id
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+
+  projectName   String
+  projectType   String
+  framework     String?
+  cwd           String
+  filesScanned  Int
+  duration      Int
+  score         Int
+
+  criticalCount Int @default(0)
+  highCount     Int @default(0)
+  mediumCount   Int @default(0)
+  lowCount      Int @default(0)
+
+  scannedAt     DateTime  @default(now())
+  findings      Finding[]
+
+  @@index([userId, scannedAt])
+}
+
+model Finding {
+  id          String  @id
+  scanId      String
+  scan        Scan    @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String
+  severity    String
+  category    String
+  file        String
+  line        Int?
+  snippet     String?
+  fix         String?
+  cwe         String?
+  owasp       String?
+  autoFixable Boolean @default(false)
+
+  @@index([scanId])
+  @@index([severity])
+}

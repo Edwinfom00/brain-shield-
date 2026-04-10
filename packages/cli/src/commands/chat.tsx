@@ -2,21 +2,25 @@ import { Command } from 'commander';
 import React from 'react';
 import { render } from 'ink';
 import { ChatUI } from '../ui/ChatUI.js';
-import { askClaude } from '../core/claude.js';
+import { askClaudeChat, type ChatMessage } from '../core/claude.js';
 import { discoverProject } from '../agents/discovery.js';
 import {
   getOrInitSession,
   appendMessage,
   saveSession,
   buildProjectContext,
-  getConversationContext,
   loadSession,
 } from '../core/session.js';
+
+// ─── System prompt ────────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = `You are BrainShield, an expert AI security assistant specialized in JavaScript and TypeScript codebases.
 You help developers understand security vulnerabilities, review code for security issues, explain fixes, and answer security questions.
 Be concise, practical, and developer-friendly. Focus on actionable advice.
-When asked about code, analyze it for security issues: XSS, injection, hardcoded secrets, authentication issues, insecure dependencies, etc.`;
+When asked about code, analyze it for security issues: XSS, injection, hardcoded secrets, authentication issues, insecure dependencies, etc.
+Remember context from earlier in the conversation — if the user refers to "that vulnerability" or "the file we discussed", use the conversation history.`;
+
+// ─── Command ──────────────────────────────────────────────────────────────────
 
 export const chatCommand = new Command('chat')
   .aliases(['c'])
@@ -50,53 +54,54 @@ export const chatCommand = new Command('chat')
       saveSession(session, cwd);
     }
 
-    // ── Build project context string ─────────────────────────────────────────
-    const projectCtx = session ? buildProjectContext(session) : '';
+    // ── Build system prompt with project context ─────────────────────────────
+    const projectCtx  = session ? buildProjectContext(session) : '';
+    const fullSystem  = projectCtx
+      ? `${SYSTEM_PROMPT}\n\n${projectCtx}`
+      : SYSTEM_PROMPT;
 
-    // ── Message handler ──────────────────────────────────────────────────────
-    const handleMessage = async (message: string): Promise<string> => {
-      // Reload session to get latest history (in case of concurrent writes)
-      let current = loadSession(cwd) ?? session;
+    // ── Message handler — real multi-turn ────────────────────────────────────
+    const handleMessage = async (userMessage: string): Promise<string> => {
+      // Always reload session to get the latest persisted history
+      const current = loadSession(cwd) ?? session;
 
-      // Build full system prompt with project context
-      const fullSystem = [
-        SYSTEM_PROMPT,
-        projectCtx ? `\n\n${projectCtx}` : '',
-      ].join('');
+      // Build the messages array from session history + new user message
+      // This is what gets sent to Claude as a proper conversation
+      const history: ChatMessage[] = (current?.conversationHistory ?? [])
+        .slice(-20) // last 20 messages = 10 turns — keeps context window manageable
+        .map((m) => ({ role: m.role, content: m.content }));
 
-      // Build prompt with conversation history for continuity
-      const history = current ? getConversationContext(current) : '';
-      const fullPrompt = history
-        ? `Previous conversation:\n${history}\n\nUser: ${message}`
-        : message;
+      const messages: ChatMessage[] = [
+        ...history,
+        { role: 'user', content: userMessage },
+      ];
 
-      const reply = await askClaude(fullPrompt, fullSystem);
+      const reply = await askClaudeChat(messages, fullSystem);
 
-      // Persist conversation to session
+      // Persist both sides of the exchange to session
       if (current) {
-        current = appendMessage(current, 'user', message);
-        current = appendMessage(current, 'assistant', reply);
-        saveSession(current, cwd);
+        const updated = appendMessage(
+          appendMessage(current, 'user', userMessage),
+          'assistant',
+          reply,
+        );
+        saveSession(updated, cwd);
       }
 
       return reply;
     };
 
     // ── Initial greeting ─────────────────────────────────────────────────────
-    const meta = session?.projectMeta;
+    const meta         = session?.projectMeta;
+    const historyCount = session?.conversationHistory.length ?? 0;
+
     const greeting = meta
       ? `Hello! I'm BrainShield, your AI security assistant.\n\nI have context on your ${meta.type} project "${meta.name}" (${meta.fileCount} files${meta.framework ? `, ${meta.framework}` : ''}).\n\nAsk me anything about your codebase security, or paste code to review.`
       : `Hello! I'm BrainShield, your AI security assistant.\n\nAsk me anything about your codebase security, or paste code you want me to review.`;
 
-    const historyCount = session?.conversationHistory.length ?? 0;
     const initialMsg = historyCount > 0
-      ? `${greeting}\n\n(Resuming conversation — ${historyCount} previous messages in memory. Use --clear to start fresh.)`
+      ? `${greeting}\n\n(Resuming — ${historyCount} messages in memory. Use --clear to start fresh.)`
       : greeting;
 
-    render(
-      <ChatUI
-        onMessage={handleMessage}
-        initialMessage={initialMsg}
-      />
-    );
+    render(<ChatUI onMessage={handleMessage} initialMessage={initialMsg} />);
   });

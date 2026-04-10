@@ -191,9 +191,9 @@ function extractChunk(content: string, vuln: Vulnerability): string {
   return parts.join('\n');
 }
 
-// ─── Atomic write ─────────────────────────────────────────────────────────────
+// ─── Atomic write (exported — called by fix command AFTER user confirms) ──────
 
-function atomicWrite(filePath: string, content: string): void {
+export function atomicWrite(filePath: string, content: string): void {
   const tmp = filePath + '.brainsield.tmp';
   writeFileSync(tmp, content, 'utf-8');
   renameSync(tmp, filePath);
@@ -203,6 +203,7 @@ function atomicWrite(filePath: string, content: string): void {
 
 export interface FixResult {
   success: boolean;
+  fixedContent?: string;   // the fixed file content — caller decides when to write
   diff?: FileDiff;
   explanation?: string;
   confidence?: 'high' | 'medium' | 'low';
@@ -216,7 +217,6 @@ export async function fixVulnerability(
   vuln: Vulnerability,
   cwd: string,
   projectContext: string,
-  dryRun = false,
 ): Promise<FixResult> {
   const filePath = join(cwd, vuln.file);
 
@@ -292,17 +292,12 @@ export async function fixVulnerability(
     };
   }
 
-  // ── Apply fix (unless dry-run) ─────────────────────────────────────────────
-  if (!dryRun) {
-    try {
-      atomicWrite(filePath, fixedContent);
-    } catch (err) {
-      return { success: false, error: `Write failed: ${err instanceof Error ? err.message : String(err)}` };
-    }
-  }
-
+  // ── Return result — caller is responsible for writing ─────────────────────
+  // fixedContent is returned so the command can show diff, ask permission,
+  // then call atomicWrite() only after explicit user confirmation.
   return {
     success: true,
+    fixedContent,
     diff,
     explanation: response.explanation,
     confidence: response.confidence,

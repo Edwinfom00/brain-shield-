@@ -1,7 +1,6 @@
-import React from 'react';
 import { Box, Text } from 'ink';
 import Spinner from 'ink-spinner';
-import { theme, SeverityLevel } from './theme.js';
+import { theme } from './theme.js';
 
 export type AgentStatus = 'pending' | 'running' | 'done' | 'error';
 
@@ -26,84 +25,79 @@ interface ScanProgressProps {
 }
 
 function AgentRow({ agent }: { agent: AgentProgress }) {
-  const statusIcon = () => {
+  const icon = () => {
     switch (agent.status) {
-      case 'running':
-        return <Spinner type="dots" />;
-      case 'done':
-        return <Text color={theme.success}>✓</Text>;
-      case 'error':
-        return <Text color={theme.danger}>✗</Text>;
-      default:
-        return <Text color={theme.muted}>○</Text>;
+      case 'running': return <><Spinner type="dots" /><Text> </Text></>;
+      case 'done':    return <Text color={theme.success}>{'✓ '}</Text>;
+      case 'error':   return <Text color={theme.danger}>{'✗ '}</Text>;
+      default:        return <Text color={theme.muted}>{'○ '}</Text>;
     }
   };
 
+  const nameColor =
+    agent.status === 'running' ? theme.primary :
+    agent.status === 'done'    ? theme.success :
+    agent.status === 'error'   ? theme.danger  : theme.muted;
+
+  const badge = agent.status === 'done' && agent.findingsCount !== undefined
+    ? agent.findingsCount > 0
+      ? <Text color={theme.warning} bold>{` ${agent.findingsCount} finding${agent.findingsCount > 1 ? 's' : ''}`}</Text>
+      : <Text color={theme.muted} dimColor>{' clean'}</Text>
+    : null;
+
   return (
-    <Box gap={1}>
-      <Box width={2}>{statusIcon()}</Box>
-      <Text
-        color={
-          agent.status === 'running'
-            ? theme.primary
-            : agent.status === 'done'
-            ? theme.success
-            : agent.status === 'error'
-            ? theme.danger
-            : theme.muted
-        }
-      >
-        {agent.name.padEnd(22)}
-      </Text>
-      {agent.status === 'done' && agent.findingsCount !== undefined && (
-        <Text color={agent.findingsCount > 0 ? theme.warning : theme.muted}>
-          {agent.findingsCount > 0
-            ? `${agent.findingsCount} finding${agent.findingsCount > 1 ? 's' : ''}`
-            : 'clean'}
-        </Text>
-      )}
+    <Box gap={0}>
+      {icon()}
+      <Text color={nameColor}>{agent.name.padEnd(26)}</Text>
+      {badge}
     </Box>
   );
 }
 
-function SeverityBadge({ level, count }: { level: SeverityLevel; count: number }) {
+function SevBadge({ label, count, color }: { label: string; count: number; color: string }) {
   return (
     <Box gap={1}>
-      <Text color={theme.severity[level]} bold>
-        {count}
-      </Text>
-      <Text color={theme.muted}>{level}</Text>
+      <Text color={color} bold>{count}</Text>
+      <Text color={theme.muted}>{label}</Text>
     </Box>
   );
 }
 
 export function ScanProgress({ agents, stats, cwd }: ScanProgressProps) {
-  const totalFindings = stats.critical + stats.high + stats.medium + stats.low;
+  const total = stats.critical + stats.high + stats.medium + stats.low;
+  const running = agents.filter((a) => a.status === 'running').length;
+  const done    = agents.filter((a) => a.status === 'done').length;
 
   return (
     <Box flexDirection="column" gap={0}>
-      <Box marginBottom={1}>
-        <Text color={theme.muted}>Scanning: </Text>
-        <Text color={theme.white} bold>
-          {cwd}
+      {/* Target */}
+      <Box gap={1} marginBottom={1}>
+        <Text color={theme.muted}>{'▸'}</Text>
+        <Text color={theme.muted}>Scanning</Text>
+        <Text color={theme.white} bold>{cwd}</Text>
+      </Box>
+
+      {/* Agent list */}
+      <Box flexDirection="column" gap={0} paddingLeft={1}>
+        {agents.map((a) => <AgentRow key={a.id} agent={a} />)}
+      </Box>
+
+      {/* Progress summary */}
+      <Box marginTop={1} gap={2} paddingLeft={1}>
+        <Text color={theme.muted} dimColor>
+          {done}/{agents.length} agents
+          {running > 0 ? ` · ${running} running` : ''}
         </Text>
+        {total > 0 && (
+          <>
+            <Text color={theme.muted}>{'·'}</Text>
+            {stats.critical > 0 && <SevBadge label="CRIT" count={stats.critical} color={theme.severity.CRITICAL} />}
+            {stats.high     > 0 && <SevBadge label="HIGH" count={stats.high}     color={theme.severity.HIGH}     />}
+            {stats.medium   > 0 && <SevBadge label="MED"  count={stats.medium}   color={theme.severity.MEDIUM}   />}
+            {stats.low      > 0 && <SevBadge label="LOW"  count={stats.low}      color={theme.severity.LOW}      />}
+          </>
+        )}
       </Box>
-
-      <Box flexDirection="column" gap={0} marginBottom={1}>
-        {agents.map((agent) => (
-          <AgentRow key={agent.id} agent={agent} />
-        ))}
-      </Box>
-
-      {totalFindings > 0 && (
-        <Box gap={3} marginTop={1}>
-          <Text color={theme.muted}>Found: </Text>
-          {stats.critical > 0 && <SeverityBadge level="CRITICAL" count={stats.critical} />}
-          {stats.high > 0 && <SeverityBadge level="HIGH" count={stats.high} />}
-          {stats.medium > 0 && <SeverityBadge level="MEDIUM" count={stats.medium} />}
-          {stats.low > 0 && <SeverityBadge level="LOW" count={stats.low} />}
-        </Box>
-      )}
     </Box>
   );
 }

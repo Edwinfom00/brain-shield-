@@ -1,5 +1,8 @@
 import type { Agent, AgentResult, ScanContext, ScanReport, Vulnerability } from './types.js';
 import { SecretsScanner } from './scanners/secrets.js';
+import { AuthScanner } from './scanners/auth.js';
+import { InjectionScanner } from './scanners/injection.js';
+import { ApiScanner } from './scanners/api.js';
 import { computeScore } from './score.js';
 import { nanoid } from 'nanoid';
 
@@ -14,13 +17,20 @@ interface OrchestratorOptions {
 /**
  * The Orchestrator spawns all scanner agents in parallel,
  * collects their results, deduplicates findings, and computes the final report.
+ *
+ * V1: Secrets scanner
+ * V2: + Auth, Injection, API Security scanners
  */
 export class Orchestrator {
   private agents: Agent[];
 
   constructor() {
-    // V1: Secrets scanner only. More agents added in Phase 2.
-    this.agents = [new SecretsScanner()];
+    this.agents = [
+      new SecretsScanner(),
+      new AuthScanner(),
+      new InjectionScanner(),
+      new ApiScanner(),
+    ];
   }
 
   getAgentIds(): Array<{ id: string; name: string }> {
@@ -41,9 +51,9 @@ export class Orchestrator {
       return result;
     });
 
-    const results = await Promise.allSettled(promises);
+    const settled = await Promise.allSettled(promises);
 
-    const agentResults: AgentResult[] = results.map((r, i) => {
+    const agentResults: AgentResult[] = settled.map((r, i) => {
       if (r.status === 'fulfilled') return r.value;
       return {
         agentId: this.agents[i].id,
@@ -56,7 +66,8 @@ export class Orchestrator {
 
     const allVulns: Vulnerability[] = agentResults.flatMap((r) => r.vulnerabilities);
     const deduped = deduplicateVulns(allVulns);
-    const score = computeScore(deduped);
+    const sorted = sortBySeverity(deduped);
+    const score = computeScore(sorted);
 
     return {
       id: nanoid(),
@@ -64,7 +75,7 @@ export class Orchestrator {
       cwd: context.cwd,
       projectType: context.projectType,
       score,
-      vulnerabilities: deduped,
+      vulnerabilities: sorted,
       agents: agentResults,
       duration: Date.now() - start,
       filesScanned: context.files.length,
@@ -72,9 +83,6 @@ export class Orchestrator {
   }
 }
 
-/**
- * Remove duplicate findings — same file + line + title.
- */
 function deduplicateVulns(vulns: Vulnerability[]): Vulnerability[] {
   const seen = new Set<string>();
   return vulns.filter((v) => {
@@ -83,4 +91,18 @@ function deduplicateVulns(vulns: Vulnerability[]): Vulnerability[] {
     seen.add(key);
     return true;
   });
+}
+
+const SEVERITY_ORDER: Record<string, number> = {
+  CRITICAL: 0,
+  HIGH: 1,
+  MEDIUM: 2,
+  LOW: 3,
+  INFO: 4,
+};
+
+function sortBySeverity(vulns: Vulnerability[]): Vulnerability[] {
+  return [...vulns].sort(
+    (a, b) => (SEVERITY_ORDER[a.severity] ?? 5) - (SEVERITY_ORDER[b.severity] ?? 5)
+  );
 }

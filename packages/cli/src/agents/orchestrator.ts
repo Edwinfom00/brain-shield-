@@ -3,6 +3,7 @@ import { SecretsScanner } from './scanners/secrets.js';
 import { AuthScanner } from './scanners/auth.js';
 import { InjectionScanner } from './scanners/injection.js';
 import { ApiScanner } from './scanners/api.js';
+import { DependencyScanner } from './scanners/deps.js';
 import { computeScore } from './score.js';
 import { nanoid } from 'nanoid';
 
@@ -30,6 +31,7 @@ export class Orchestrator {
       new AuthScanner(),
       new InjectionScanner(),
       new ApiScanner(),
+      new DependencyScanner(),
     ];
   }
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Box, Text } from 'ink';
 import { theme, SeverityLevel } from './theme.js';
 import type { Vulnerability } from '../agents/types.js';
@@ -8,132 +7,123 @@ interface FindingsReportProps {
   score: number;
 }
 
-function VulnCard({ vuln }: { vuln: Vulnerability }) {
-  const severityColor = theme.severity[vuln.severity as SeverityLevel] ?? theme.muted;
+const SEV_ICON: Record<SeverityLevel, string> = {
+  CRITICAL: '▰▰▰▰',
+  HIGH:     '▰▰▰░',
+  MEDIUM:   '▰▰░░',
+  LOW:      '▰░░░',
+  INFO:     '░░░░',
+};
+
+function ScoreBar({ score }: { score: number }) {
+  const filled  = Math.round(score / 5);
+  const empty   = 20 - filled;
+  const color   = score >= 80 ? theme.success : score >= 50 ? theme.warning : theme.danger;
+  const label   = score >= 80 ? 'SECURE' : score >= 50 ? 'AT RISK' : 'CRITICAL';
 
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="single"
-      borderColor={severityColor}
-      paddingX={1}
-      marginBottom={1}
-    >
-      <Box justifyContent="space-between">
-        <Text color={severityColor} bold>
-          [{vuln.severity}] {vuln.id}
-        </Text>
-        <Text color={theme.muted}>{vuln.file}</Text>
+    <Box flexDirection="column" gap={0}>
+      <Box gap={2} alignItems="center">
+        <Text color={color} bold>{'█'.repeat(filled)}<Text color={theme.muted} dimColor>{'░'.repeat(empty)}</Text></Text>
+        <Text color={color} bold>{score}<Text color={theme.muted}>/100</Text></Text>
+        <Text color={color} bold>{label}</Text>
       </Box>
-      <Text color={theme.white} bold>
-        {vuln.title}
-      </Text>
-      <Text color={theme.muted} wrap="wrap">
-        {vuln.description}
-      </Text>
-      {vuln.line && (
-        <Text color={theme.muted}>
-          Line {vuln.line}
-        </Text>
-      )}
-      {vuln.fix && (
-        <Box marginTop={1}>
-          <Text color={theme.success}>💡 Fix: </Text>
-          <Text color={theme.white} wrap="wrap">
-            {vuln.fix}
-          </Text>
-        </Box>
-      )}
     </Box>
   );
 }
 
-function ScoreBar({ score }: { score: number }) {
-  const filled = Math.round(score / 5);
-  const empty = 20 - filled;
-  const color =
-    score >= 80 ? theme.success : score >= 50 ? theme.warning : theme.danger;
+function SevLine({ sev, count }: { sev: SeverityLevel; count: number }) {
+  if (count === 0) return null;
+  return (
+    <Box gap={2}>
+      <Text color={theme.severity[sev]}>{SEV_ICON[sev]}</Text>
+      <Text color={theme.severity[sev]} bold>{sev.padEnd(8)}</Text>
+      <Text color={theme.white} bold>{count}</Text>
+    </Box>
+  );
+}
+
+function VulnCard({ vuln, index }: { vuln: Vulnerability; index: number }) {
+  const sev   = vuln.severity as SeverityLevel;
+  const color = theme.severity[sev] ?? theme.muted;
 
   return (
-    <Box gap={1} alignItems="center">
-      <Text color={color} bold>
-        {'█'.repeat(filled)}
-        {'░'.repeat(empty)}
-      </Text>
-      <Text color={color} bold>
-        {score}/100
-      </Text>
+    <Box flexDirection="column" marginBottom={1}>
+      {/* Title row */}
+      <Box gap={2}>
+        <Text color={theme.muted} dimColor>{String(index + 1).padStart(2, '0')}</Text>
+        <Text color={color} bold>{`[${vuln.severity}]`}</Text>
+        <Text color={theme.white} bold>{vuln.id}</Text>
+        <Text color={theme.muted}>{'·'}</Text>
+        <Text color={theme.white}>{vuln.title}</Text>
+      </Box>
+
+      {/* File + refs */}
+      <Box paddingLeft={5} gap={2}>
+        <Text color={theme.muted} dimColor>{vuln.file}{vuln.line ? `:${vuln.line}` : ''}</Text>
+        {vuln.cwe   && <Text color={theme.muted} dimColor>{vuln.cwe}</Text>}
+        {vuln.owasp && <Text color={theme.muted} dimColor>{vuln.owasp}</Text>}
+      </Box>
+
+      {/* Fix */}
+      {vuln.fix && (
+        <Box paddingLeft={5} gap={1}>
+          <Text color={theme.success}>{'↳'}</Text>
+          <Text color={theme.muted} wrap="wrap">{vuln.fix.split('\n')[0]}</Text>
+        </Box>
+      )}
     </Box>
   );
 }
 
 export function FindingsReport({ vulnerabilities, score }: FindingsReportProps) {
-  const criticals = vulnerabilities.filter((v) => v.severity === 'CRITICAL');
-  const highs = vulnerabilities.filter((v) => v.severity === 'HIGH');
-  const mediums = vulnerabilities.filter((v) => v.severity === 'MEDIUM');
-  const lows = vulnerabilities.filter((v) => v.severity === 'LOW');
+  const byDev = (sev: string) => vulnerabilities.filter((v) => v.severity === sev);
+  const crits  = byDev('CRITICAL');
+  const highs  = byDev('HIGH');
+  const meds   = byDev('MEDIUM');
+  const lows   = byDev('LOW');
+
+  const divider = <Text color={theme.muted} dimColor>{'─'.repeat(64)}</Text>;
 
   return (
-    <Box flexDirection="column">
-      {/* Score */}
-      <Box
-        flexDirection="column"
-        borderStyle="double"
-        borderColor={score >= 80 ? theme.success : score >= 50 ? theme.warning : theme.danger}
-        paddingX={2}
-        paddingY={0}
-        marginBottom={1}
-      >
-        <Text color={theme.white} bold>
-          Security Score
-        </Text>
+    <Box flexDirection="column" gap={1}>
+
+      {/* Score card */}
+      <Box flexDirection="column" gap={1} paddingX={1}>
+        <Text color={theme.primary} bold>Security Score</Text>
         <ScoreBar score={score} />
-        <Text color={theme.muted}>
-          {vulnerabilities.length} vulnerabilit{vulnerabilities.length !== 1 ? 'ies' : 'y'} found
-          {' — '}
-          {criticals.length} CRITICAL · {highs.length} HIGH · {mediums.length} MEDIUM · {lows.length} LOW
-        </Text>
+        <Box gap={3} marginTop={0}>
+          <SevLine sev="CRITICAL" count={crits.length} />
+          <SevLine sev="HIGH"     count={highs.length} />
+          <SevLine sev="MEDIUM"   count={meds.length}  />
+          <SevLine sev="LOW"      count={lows.length}  />
+        </Box>
       </Box>
 
-      {/* Findings grouped by severity */}
-      {criticals.length > 0 && (
-        <>
-          <Text color={theme.danger} bold>── CRITICAL ──</Text>
-          {criticals.map((v) => <VulnCard key={v.id} vuln={v} />)}
-        </>
-      )}
-      {highs.length > 0 && (
-        <>
-          <Text color={theme.severity.HIGH} bold>── HIGH ──</Text>
-          {highs.map((v) => <VulnCard key={v.id} vuln={v} />)}
-        </>
-      )}
-      {mediums.length > 0 && (
-        <>
-          <Text color={theme.warning} bold>── MEDIUM ──</Text>
-          {mediums.map((v) => <VulnCard key={v.id} vuln={v} />)}
-        </>
-      )}
-      {lows.length > 0 && (
-        <>
-          <Text color={theme.info} bold>── LOW ──</Text>
-          {lows.map((v) => <VulnCard key={v.id} vuln={v} />)}
-        </>
-      )}
+      {divider}
 
-      {vulnerabilities.length === 0 && (
-        <Box borderStyle="round" borderColor={theme.success} paddingX={2}>
-          <Text color={theme.success} bold>
-            ✓ No vulnerabilities found. Codebase is clean.
-          </Text>
+      {/* Findings list */}
+      {vulnerabilities.length === 0 ? (
+        <Box paddingX={1} gap={2}>
+          <Text color={theme.success} bold>{'✓'}</Text>
+          <Text color={theme.success}>No vulnerabilities found. Codebase is clean.</Text>
+        </Box>
+      ) : (
+        <Box flexDirection="column" paddingX={1}>
+          {vulnerabilities.map((v, i) => <VulnCard key={v.id} vuln={v} index={i} />)}
         </Box>
       )}
 
-      <Box marginTop={1}>
-        <Text color={theme.muted}>
-          Run <Text color={theme.primary} bold>brain fix --all</Text> to apply all fixes
-          {'  |  '}
-          Run <Text color={theme.primary} bold>brain report</Text> to export full report
+      {divider}
+
+      {/* Actions hint */}
+      <Box paddingX={1} gap={3}>
+        <Text color={theme.muted} dimColor>
+          <Text color={theme.primary}>brain fix --critical</Text>
+          {'  '}
+          <Text color={theme.primary}>brain fix --ai</Text>
+          {'  '}
+          <Text color={theme.primary}>brain report --md</Text>
         </Text>
       </Box>
     </Box>
